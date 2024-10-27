@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs'
 import OpenAI from 'openai'
-import { useOpenAI } from '../src/hooks/openai'
+import { OpenAIEnum } from '../src/types/openai'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -144,12 +144,12 @@ ipcMain.handle('convert-file', async (_, inputPath, outputPath) => {
   } else if (isAudio) {
     // 将 音频 转换为 文字
     // const apiKey = 'sk-7DYgNAYx145IBacrEeCc630bF63c4138AbFf7b9bBa76F025'
-    const { getApiKey, getBaseURL } = useOpenAI()
-    const apiKey = await getApiKey()
-    const baseURL = await getBaseURL()
+    
+    const apiKey = localStorage.getItem(OpenAIEnum.API_KEY)
+    const baseURL = localStorage.getItem(OpenAIEnum.BASE_URL)
     const openai = new OpenAI({
-      apiKey,
-      baseURL,
+      apiKey: apiKey ?? '',
+      baseURL: baseURL,
       // baseURL: 'https://free.gpt.ge/v1'
     })
     return new Promise((resolve, reject) => {
