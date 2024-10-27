@@ -13,11 +13,11 @@ interface FileItem {
   selected: boolean
 }
 
-export enum OutputType {
-  mp3 = 'mp3',
-  srt = 'srt',
-  txt = 'txt'
-}
+export type TextOutputType = 'srt' | 'txt' | 'json'
+export type AudioOutputType = 'mp3' | 'wav' | 'aac' | 'flac'
+export type OutputType = TextOutputType | AudioOutputType
+export const TEXT_OUTPUT_TYPES: TextOutputType[] = ['srt', 'txt', 'json']
+export const AUDIO_OUTPUT_TYPES: AudioOutputType[] = ['mp3', 'wav', 'aac', 'flac']
 
 interface FileState {
   files: FileItem[]
@@ -34,7 +34,7 @@ interface FileState {
 
 export const useFileStore = create<FileState>((set, get) => ({
   files: [],
-  outputType: OutputType.txt,
+  outputType: AUDIO_OUTPUT_TYPES[0],
   addFiles: (newFiles) => set((state) => {
     const existingFiles = new Set(state.files.map(f => f.fullSource))
     const filesToAdd = newFiles.filter(f => !existingFiles.has(f)).map(f => ({
