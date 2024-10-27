@@ -24,7 +24,9 @@ function Tools() {
       <div className="flex items-center gap-2 mx-5 py-5 border-b-2 border-gray-700">
         <Button onClick={handleSelectFile}>添加文件</Button>
         <Button onClick={handleSelectFolder}>添加文件夹</Button>
-        <ArrowBigRight />
+        <ArrowBigRight className="flex-shrink-0" />
+        <div className="text-sm whitespace-nowrap">选择转换规则</div>
+        <ArrowBigRight className="flex-shrink-0"  />
         <Button onClick={convertSelectedFiles}>开始转换</Button>
       </div>
     </>
