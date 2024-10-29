@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { v4 as uuidV4 } from 'uuid'
 import { FileStatus, StatusColor } from '@/lib/status-color'
+import { OpenAIEnum } from '@/types/openai'
 
 interface FileItem {
   id: string
@@ -78,7 +79,9 @@ export const useFileStore = create<FileState>((set, get) => ({
       updateFileStatus(file.id, FileStatus.Converting)
 
       try {
-        await window.ipcRenderer.invoke('convert-file', file.fullSource, file.fullTarget)
+        const apiKey = JSON.parse(localStorage.getItem(OpenAIEnum.API_KEY) || '')
+        const baseURL = JSON.parse(localStorage.getItem(OpenAIEnum.BASE_URL) || '')
+        await window.ipcRenderer.invoke('convert-file', file.fullSource, file.fullTarget, apiKey, baseURL)
         updateFileStatus(file.id, FileStatus.Completed)
       } catch (error) {
         console.error(`处理文件 ${file.source} 时发生错误:`, error)
