@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs'
 import OpenAI from 'openai'
-import { OpenAIEnum } from '../src/types/openai'
+import { isVideo, isAudio } from '../src/lib/utils'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -123,13 +123,10 @@ ipcMain.handle('get-files', async (_, paths: string[]) => {
 })
 
 // 转换文件
-ipcMain.handle('convert-file', async (_, inputPath, outputPath) => {
+ipcMain.handle('convert-file', async (_, inputPath, outputPath, apiKey?: string, baseURL?: string) => {
   console.log(inputPath, outputPath);
   // 判断inputPath是否为视频
-  const isVideo = inputPath.endsWith('.mp4') || inputPath.endsWith('.avi') || inputPath.endsWith('.mov')
-  const isAudio = inputPath.endsWith('.mp3') || inputPath.endsWith('.wav') || inputPath.endsWith('.m4a')
-  console.log(isVideo, isAudio);
-  if (isVideo) {
+  if (isVideo(inputPath) && isAudio(outputPath)) {
     // 将 视频 转换为 音频
     const FfmpegCommand  = require('fluent-ffmpeg')
     const ffmpeg = new FfmpegCommand()
@@ -141,16 +138,54 @@ ipcMain.handle('convert-file', async (_, inputPath, outputPath) => {
         .on('error', (err: Error) => reject(err))
         .run()
     })
-  } else if (isAudio) {
+  } else if (isVideo(inputPath) && !isVideo(outputPath)) {
+    // 将 视频 转换为 文本
+    const FfmpegCommand  = require('fluent-ffmpeg')
+    const ffmpeg = new FfmpegCommand()
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = []
+      ffmpeg.setFfmpegPath(require('ffmpeg-static'))
+        .addInput(inputPath)
+        .toFormat('mp3')
+        .on('data', (chunk: Buffer) => {
+          console.log(chunk);
+          chunks.push(chunk)
+        })
+        .pipe()
+        .on('end', async () => {
+          console.log(chunks);
+          
+          const openai = new OpenAI({
+            apiKey: 'sk-7DYgNAYx145IBacrEeCc630bF63c4138AbFf7b9bBa76F025',
+            baseURL: 'https://free.gpt.ge/v1',
+          })
+          console.log(new File([Buffer.concat(chunks)], 'audio.mp3'));
+          
+          openai.audio.transcriptions.create({
+            file: new File([Buffer.concat(chunks)], 'audio.mp3'),
+            model: "whisper-1",
+            response_format: outputPath.includes('.srt') ? 'srt' : 'text',
+            language: 'zh'
+          }).then(res => {
+            fs.writeFileSync(outputPath, res)
+            resolve('转换完成')
+          }).catch(err => {
+            reject(err)
+          })
+        })
+        .on('error', (err: Error) => reject(err))
+
+      
+    })
+  } else if (isAudio(inputPath)) {
     // 将 音频 转换为 文字
-    // const apiKey = 'sk-7DYgNAYx145IBacrEeCc630bF63c4138AbFf7b9bBa76F025'
-    
-    const apiKey = localStorage.getItem(OpenAIEnum.API_KEY)
-    const baseURL = localStorage.getItem(OpenAIEnum.BASE_URL)
+    // const openai = new OpenAI({
+    //   apiKey: apiKey ?? '',
+    //   baseURL: baseURL,
+    // })
     const openai = new OpenAI({
-      apiKey: apiKey ?? '',
-      baseURL: baseURL,
-      // baseURL: 'https://free.gpt.ge/v1'
+      apiKey: 'sk-7DYgNAYx145IBacrEeCc630bF63c4138AbFf7b9bBa76F025',
+      baseURL: 'https://free.gpt.ge/v1',
     })
     return new Promise((resolve, reject) => {
       openai.audio.transcriptions.create({
